@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Define here the models for your spider middleware
-#
-# See documentation in:
-# http://doc.scrapy.org/en/latest/topics/spider-middleware.html
+import subprocess
 
 from scrapy import signals
+from scrapy.http import Response
+
+
+class CustomDownloaderMiddleware:
+    def process_request(self, request, spider):
+        print(request)
+        url = request.url + '&checkFrom=searchBox'
+        out_bytes = subprocess.check_output(['phantomjs', './url.js', url])
+        out_text = out_bytes.decode('utf-8')
+
+        return Response(url, body=out_text)
 
 
 class TianyanchaSpiderSpiderMiddleware(object):
