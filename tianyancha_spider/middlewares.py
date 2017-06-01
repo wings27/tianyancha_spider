@@ -3,17 +3,20 @@
 import subprocess
 
 from scrapy import signals
-from scrapy.http import Response
+from scrapy.http import HtmlResponse
 
 
 class CustomDownloaderMiddleware:
     def process_request(self, request, spider):
-        print(request)
-        url = request.url + '&checkFrom=searchBox'
+        if request.url.endswith('robots.txt'):
+            return None
+        url = request.url
+        if request.url.startswith('http://www.tianyancha.com/search'):
+            url = url + '&checkFrom=searchBox'
         out_bytes = subprocess.check_output(['phantomjs', './url.js', url])
         out_text = out_bytes.decode('utf-8')
 
-        return Response(url, body=out_text)
+        return HtmlResponse(url, body=out_text, encoding='utf-8')
 
 
 class TianyanchaSpiderSpiderMiddleware(object):

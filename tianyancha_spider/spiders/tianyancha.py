@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from bs4 import BeautifulSoup
 
 
 class TianyanchaSpider(scrapy.Spider):
@@ -17,7 +18,16 @@ class TianyanchaSpider(scrapy.Spider):
             yield self.make_requests_from_url(url)
 
     def parse(self, response):
-        pass
+        if response.url.startswith('http://www.tianyancha.com/search'):
+            bs = BeautifulSoup(response.body, 'html.parser')
+            qn = bs.find('a', class_='query_name')
+            if not qn:
+                return {'state': '暂未收录该公司'}
+            link = qn['href']
+            yield self.make_requests_from_url(link)
+        elif response.url.startswith('http://www.tianyancha.com/company'):
+            bs = BeautifulSoup(response.body, 'html.parser')
+            print(response.body)
 
     def init_urls(self):
         try:
