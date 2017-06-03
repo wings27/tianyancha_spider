@@ -1,6 +1,7 @@
-system = require('system')
+system = require('system');
 address = system.args[1];
 var page = require('webpage').create();
+
 var USER_AGENTS = [
     "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
     "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)",
@@ -37,19 +38,29 @@ var USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
     "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10"
 ];
-var n = Math.floor(Math.random() * USER_AGENTS.length + 1)-1;
+var n = Math.floor(Math.random() * USER_AGENTS.length + 1) - 1;
 //page.settings.userAgent= 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.95 Safari/537.36';
-page.settings.userAgent=USER_AGENTS[n];
+page.settings.userAgent = USER_AGENTS[n];
 var url = address;
 page.open(url, function (status) {
     //Page is loaded!
     if (status !== 'success') {
         console.log('Unable to post!');
     } else {
-            window.setTimeout(function () {
-              page.render("url.png");  //截图
-              console.log(page.content);
-              phantom.exit();
-          }, 5000);
+        var timeout = 200;
+        if (url.indexOf("http://www.tianyancha.com/company") >= 0) {
+            console.log("set timeout");
+            timeout = 8000;
+        }
+        window.setTimeout(function () {
+            console.log(page.content);
+            // if (url.indexOf("http://www.tianyancha.com/company")) {
+            //     var $patent = document.querySelectorAll('[ng-if="dataItemCount.patentCount>0"]');
+            //     console.log($patent);
+            //     angular.element($patent).scope().getPatentList(1, 1000);
+            // }
+            page.render("url.png");  //截图
+            phantom.exit();
+        }, timeout);
     }
-  });
+});

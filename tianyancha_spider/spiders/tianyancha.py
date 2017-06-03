@@ -33,6 +33,10 @@ class TianyanchaSpider(scrapy.Spider):
             holders = bs.find('div', {'ng-if': 'dataItemCount.lawsuitCount>0'})
             return holders.decode_contents(formatter="html")
 
+        def bs_extract_patent(bs):
+            holders = bs.find('div', {'ng-if': 'dataItemCount.patentCount>0'})
+            return holders.decode_contents(formatter="html")
+
         if response.url.startswith('http://www.tianyancha.com/search'):
             beautiful_soup = BeautifulSoup(response.body, 'html.parser')
             qn = beautiful_soup.find('a', class_='query_name')
@@ -48,13 +52,16 @@ class TianyanchaSpider(scrapy.Spider):
             beautiful_soup = BeautifulSoup(response.body, 'html.parser')
             holders_content = bs_extract_holders(beautiful_soup)
             lawsuit_content = bs_extract_lawsuit(beautiful_soup)
+            patent_content = bs_extract_patent(beautiful_soup)
             yield TianyanchaSpiderItem(code=company_code,
                                        name=response.meta['name'],
                                        status='OK',
                                        holders_content=holders_content,
-                                       lawsuit_content=lawsuit_content,)
+                                       lawsuit_content=lawsuit_content,
+                                       patent_content=patent_content,)
     # 股本变化情况  http://www.tianyancha.com/stock/equityChange.json?graphId=640320&ps=1000&pn=1
     # 法律诉讼  http://www.tianyancha.com/v2/getlawsuit/NAME.json?page=1&ps=1000
+    # 专利  http://www.tianyancha.com/expanse/patent.json?id=640320&pn=1&ps=1000
 
     def init_urls(self):
         try:
