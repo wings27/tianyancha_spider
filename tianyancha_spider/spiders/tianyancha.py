@@ -37,19 +37,25 @@ class TianyanchaSpider(scrapy.Spider):
             holders = bs.find('div', {'ng-if': 'dataItemCount.patentCount>0'})
             return holders.decode_contents(formatter="html")
 
+        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
         if response.url.startswith('http://www.tianyancha.com/search'):
-            beautiful_soup = BeautifulSoup(response.body, 'html.parser')
             qn = beautiful_soup.find('a', class_='query_name')
             name = response.meta['name']
             if not qn:
                 return TianyanchaSpiderItem(name=name, status='Not found')
             link = qn['href']
             if link.startswith('http://www.tianyancha.com/company'):
-                request = Request(link, dont_filter=True, meta=response.meta)
-                yield request
+                company_code = extract_company_code(link)
+                response.meta.update({'code': company_code})
+                yield Request('http://www.tianyancha.com/stock/equityChange.json?'
+                              'graphId=%s&ps=1000&pn=1' % company_code,
+                              dont_filter=True, meta=response.meta)
+                yield Request('http://www.tianyancha.com/expanse/patent.json?'
+                              'id=%s&ps=1000&pn=1' % company_code,
+                              dont_filter=True, meta=response.meta)
+
         elif response.url.startswith('http://www.tianyancha.com/company'):
             company_code = extract_company_code(response.url)
-            beautiful_soup = BeautifulSoup(response.body, 'html.parser')
             holders_content = bs_extract_holders(beautiful_soup)
             lawsuit_content = bs_extract_lawsuit(beautiful_soup)
             patent_content = bs_extract_patent(beautiful_soup)
@@ -58,7 +64,19 @@ class TianyanchaSpider(scrapy.Spider):
                                        status='OK',
                                        holders_content=holders_content,
                                        lawsuit_content=lawsuit_content,
-                                       patent_content=patent_content,)
+                                       patent_content=patent_content, )
+        else:
+            # json result
+            if response.url.startswith('http://www.tianyancha.com/stock/equityChange.json'):
+                equity_change = beautiful_soup.find('pre').text
+                yield TianyanchaSpiderItem(code=response.meta['code'],
+                                           equity_change=equity_change)
+            if response.url.startswith('http://www.tianyancha.com/expanse/patent.json'):
+                patent_content = beautiful_soup.find('pre').text
+                yield TianyanchaSpiderItem(code=response.meta['code'],
+                                           patent_content=patent_content)
+            print(response.body)
+
     # 股本变化情况  http://www.tianyancha.com/stock/equityChange.json?graphId=640320&ps=1000&pn=1
     # 法律诉讼  http://www.tianyancha.com/v2/getlawsuit/NAME.json?page=1&ps=1000
     # 专利  http://www.tianyancha.com/expanse/patent.json?id=640320&pn=1&ps=1000

@@ -11,10 +11,11 @@ class TianyanchaSpiderPipeline(object):
         self.item_cache = {}
 
     def process_item(self, item, spider):
-        if item['code']:
+        key = item['code']
+        if key:
             try:
-                self.item_cache[item['code']] = self.item_cache[item['code']].update(item)
-                return self.item_cache[item['code']]
+                self.item_cache[key].update(item)
             except KeyError:
-                return item
+                self.item_cache[key] = item
+            return self.item_cache[key]
         return item

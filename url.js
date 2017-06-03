@@ -47,10 +47,10 @@ page.open(url, function (status) {
     if (status !== 'success') {
         console.log('Unable to post!');
     } else {
-        var timeout = 200;
+        var timeout = 500;
         if (url.indexOf("http://www.tianyancha.com/company") >= 0) {
             console.log("set timeout");
-            timeout = 8000;
+            timeout = 5000;
         }
         window.setTimeout(function () {
             console.log(page.content);
@@ -59,7 +59,7 @@ page.open(url, function (status) {
             //     console.log($patent);
             //     angular.element($patent).scope().getPatentList(1, 1000);
             // }
-            page.render("url.png");  //截图
+            // page.render("url.png");  //截图
             phantom.exit();
         }, timeout);
     }
