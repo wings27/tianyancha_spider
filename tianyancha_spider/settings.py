@@ -27,6 +27,12 @@ ITEM_PIPELINES = {
    'tianyancha_spider.pipelines.TianyanchaSpiderPipeline': 300,
 }
 
+FEED_EXPORTERS = {
+    'json': 'tianyancha_spider.item_exporters.UnicodeJsonItemExporter',
+    'jl': 'tianyancha_spider.item_exporters.UnicodeJsonLinesItemExporter',
+
+}
+
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html
 # AUTOTHROTTLE_ENABLED = True

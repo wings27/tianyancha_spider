@@ -14,4 +14,5 @@ class TianyanchaSpiderItem(scrapy.Item):
     name = scrapy.Field()
     code = scrapy.Field()
     holders_content = scrapy.Field()
+    lawsuit_content = scrapy.Field()
     pass

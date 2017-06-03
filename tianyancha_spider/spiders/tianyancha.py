@@ -25,9 +25,17 @@ class TianyanchaSpider(scrapy.Spider):
         def extract_company_code(company_link):
             return company_link[len('http://www.tianyancha.com/company/'):]
 
+        def bs_extract_holders(bs):
+            holders = bs.find('div', {'ng-if': 'dataItemCount.holderCount>0'})
+            return holders.decode_contents(formatter="html")
+
+        def bs_extract_lawsuit(bs):
+            holders = bs.find('div', {'ng-if': 'dataItemCount.lawsuitCount>0'})
+            return holders.decode_contents(formatter="html")
+
         if response.url.startswith('http://www.tianyancha.com/search'):
-            bs = BeautifulSoup(response.body, 'html.parser')
-            qn = bs.find('a', class_='query_name')
+            beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+            qn = beautiful_soup.find('a', class_='query_name')
             name = response.meta['name']
             if not qn:
                 return TianyanchaSpiderItem(name=name, status='Not found')
@@ -37,13 +45,16 @@ class TianyanchaSpider(scrapy.Spider):
                 yield request
         elif response.url.startswith('http://www.tianyancha.com/company'):
             company_code = extract_company_code(response.url)
-            bs = BeautifulSoup(response.body, 'html.parser')
-            holders = bs.find('div', {'ng-if': 'dataItemCount.holderCount>0'})
-            holders_content = holders.decode_contents(formatter="html")
+            beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+            holders_content = bs_extract_holders(beautiful_soup)
+            lawsuit_content = bs_extract_lawsuit(beautiful_soup)
             yield TianyanchaSpiderItem(code=company_code,
                                        name=response.meta['name'],
                                        status='OK',
-                                       holders_content=holders_content)
+                                       holders_content=holders_content,
+                                       lawsuit_content=lawsuit_content,)
+    # 股本变化情况  http://www.tianyancha.com/stock/equityChange.json?graphId=640320&ps=1000&pn=1
+    # 法律诉讼  http://www.tianyancha.com/v2/getlawsuit/NAME.json?page=1&ps=1000
 
     def init_urls(self):
         try:
