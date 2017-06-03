@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 import scrapy
 from bs4 import BeautifulSoup
 from scrapy import Request
@@ -69,10 +71,12 @@ class TianyanchaSpider(scrapy.Spider):
             # json result
             if response.url.startswith('http://www.tianyancha.com/stock/equityChange.json'):
                 equity_change = beautiful_soup.find('pre').text
+                equity_change = json.loads(equity_change)
                 yield TianyanchaSpiderItem(code=response.meta['code'],
                                            equity_change=equity_change)
             if response.url.startswith('http://www.tianyancha.com/expanse/patent.json'):
                 patent_content = beautiful_soup.find('pre').text
+                patent_content = json.loads(patent_content)
                 yield TianyanchaSpiderItem(code=response.meta['code'],
                                            patent_content=patent_content)
             print(response.body)
