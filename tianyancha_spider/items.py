@@ -10,5 +10,8 @@ import scrapy
 
 class TianyanchaSpiderItem(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
+    status = scrapy.Field()
+    name = scrapy.Field()
+    code = scrapy.Field()
+    holders_content = scrapy.Field()
     pass

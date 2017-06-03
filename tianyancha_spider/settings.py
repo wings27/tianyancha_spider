@@ -23,11 +23,9 @@ DOWNLOADER_MIDDLEWARES = {
     'tianyancha_spider.middlewares.CustomDownloaderMiddleware': 543,
 }
 
-# Configure item pipelines
-# See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
-# ITEM_PIPELINES = {
-#    'tianyancha_spider.pipelines.TianyanchaSpiderPipeline': 300,
-# }
+ITEM_PIPELINES = {
+   'tianyancha_spider.pipelines.TianyanchaSpiderPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html
