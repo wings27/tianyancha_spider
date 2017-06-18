@@ -10,7 +10,6 @@ class TianyanchaSpiderPipeline(object):
         return datetime.fromtimestamp(date_long / 1000).strftime('%Y.%m.%d')
 
     def __init__(self) -> None:
-        super().__init__()
         self.counter = {
             TianyanchaSpider.SHARE_HOLDER: 0,
             TianyanchaSpider.LAWSUIT_CONTENT: 0,
