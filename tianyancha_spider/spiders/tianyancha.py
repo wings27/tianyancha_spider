@@ -16,7 +16,7 @@ class TianyanchaSpider(scrapy.Spider):
     def __init__(self, name=None, **kwargs):
         super().__init__(name, **kwargs)
         self.start_urls = self.init_urls()
-        print(self.start_urls)
+        self.item_cache = {}
 
     def start_requests(self):
         for (name, url) in self.start_urls:
@@ -27,61 +27,62 @@ class TianyanchaSpider(scrapy.Spider):
         def extract_company_code(company_link):
             return company_link[len('http://www.tianyancha.com/company/'):]
 
-        def bs_extract_holders(bs):
-            holders = bs.find('div', {'ng-if': 'dataItemCount.holderCount>0'})
-            return holders.decode_contents(formatter="html")
-
-        def bs_extract_lawsuit(bs):
-            holders = bs.find('div', {'ng-if': 'dataItemCount.lawsuitCount>0'})
-            return holders.decode_contents(formatter="html")
-
-        def bs_extract_patent(bs):
-            holders = bs.find('div', {'ng-if': 'dataItemCount.patentCount>0'})
-            return holders.decode_contents(formatter="html")
-
         beautiful_soup = BeautifulSoup(response.body, 'html.parser')
-        if response.url.startswith('http://www.tianyancha.com/search'):
-            qn = beautiful_soup.find('a', class_='query_name')
-            name = response.meta['name']
-            if not qn:
-                return TianyanchaSpiderItem(name=name, status='Not found')
-            link = qn['href']
-            if link.startswith('http://www.tianyancha.com/company'):
-                company_code = extract_company_code(link)
-                response.meta.update({'code': company_code})
-                yield Request('http://www.tianyancha.com/stock/equityChange.json?'
-                              'graphId=%s&ps=1000&pn=1' % company_code,
-                              dont_filter=True, meta=response.meta)
-                yield Request('http://www.tianyancha.com/expanse/patent.json?'
-                              'id=%s&ps=1000&pn=1' % company_code,
-                              dont_filter=True, meta=response.meta)
 
-        elif response.url.startswith('http://www.tianyancha.com/company'):
-            company_code = extract_company_code(response.url)
-            holders_content = bs_extract_holders(beautiful_soup)
-            lawsuit_content = bs_extract_lawsuit(beautiful_soup)
-            patent_content = bs_extract_patent(beautiful_soup)
-            yield TianyanchaSpiderItem(code=company_code,
-                                       name=response.meta['name'],
-                                       status='OK',
-                                       holders_content=holders_content,
-                                       lawsuit_content=lawsuit_content,
-                                       patent_content=patent_content, )
-        else:
-            # json result
-            if response.url.startswith('http://www.tianyancha.com/stock/equityChange.json'):
-                equity_change = beautiful_soup.find('pre').text
-                equity_change = json.loads(equity_change)
-                response.meta.update({'equity_change': equity_change})
-            if response.url.startswith('http://www.tianyancha.com/expanse/patent.json'):
-                patent_content = beautiful_soup.find('pre').text
-                patent_content = json.loads(patent_content)
-                response.meta.update({'patent_content': patent_content})
-            yield TianyanchaSpiderItem(response.meta)
+        qn = beautiful_soup.find('a', class_='query_name')
+        name = response.meta['name']
+        if not qn:
+            return TianyanchaSpiderItem(name=name, status='Not found')
+        link = qn['href']
+        if link.startswith('http://www.tianyancha.com/company'):
+            company_code = extract_company_code(link)
+            response.meta.update({'code': company_code})
+            yield Request('http://www.tianyancha.com/stock/equityChange.json?'
+                          'graphId=%s&ps=1000&pn=1' % company_code,
+                          dont_filter=True, meta=response.meta,
+                          callback=self.equity_change)
+            yield Request('http://www.tianyancha.com/expanse/patent.json?'
+                          'id=%s&ps=1000&pn=1' % company_code,
+                          dont_filter=True, meta=response.meta,
+                          callback=self.patent_content)
+            yield Request('http://www.tianyancha.com/v2/getlawsuit'
+                          '/%s.json?page=1&ps=1000' % name,
+                          dont_filter=True, meta=response.meta,
+                          callback=self.lawsuit_content)
 
-    # 股本变化情况  http://www.tianyancha.com/stock/equityChange.json?graphId=640320&ps=1000&pn=1
-    # 法律诉讼  http://www.tianyancha.com/v2/getlawsuit/NAME.json?page=1&ps=1000
-    # 专利  http://www.tianyancha.com/expanse/patent.json?id=640320&pn=1&ps=1000
+    def equity_change(self, response):
+        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+        equity_change = beautiful_soup.find('pre').text
+        equity_change = json.loads(equity_change)
+        response.meta.update({'equity_change': equity_change})
+        yield self._update_item_cache(response)
+
+    def patent_content(self, response):
+        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+        patent_content = beautiful_soup.find('pre').text
+        patent_content = json.loads(patent_content)
+        response.meta.update({'patent_content': patent_content})
+        yield self._update_item_cache(response)
+
+    def lawsuit_content(self, response):
+        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+        lawsuit_content = beautiful_soup.find('pre').text
+        lawsuit_content = json.loads(lawsuit_content)
+        response.meta.update({'lawsuit_content': lawsuit_content})
+        yield self._update_item_cache(response)
+
+    def _update_item_cache(self, response):
+        item = TianyanchaSpiderItem(response.meta)
+        key = item['code']
+        if key:
+            try:
+                self.item_cache[key].update(item)
+            except KeyError:
+                self.item_cache[key] = item
+        cached_item = self.item_cache[key]
+        if all(k in cached_item for k in (
+                'equity_change', 'patent_content', 'lawsuit_content')):
+            return cached_item
 
     def init_urls(self):
         try:
