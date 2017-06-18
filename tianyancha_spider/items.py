@@ -15,8 +15,7 @@ class TianyanchaSpiderItem(scrapy.Item):
     code = scrapy.Field()
     download_timeout = scrapy.Field()
     depth = scrapy.Field()
-    holders_content = scrapy.Field()
-    lawsuit_content = scrapy.Field()
+
+    share_holder = scrapy.Field()
     patent_content = scrapy.Field()
-    equity_change = scrapy.Field()
-    pass
+    lawsuit_content = scrapy.Field()

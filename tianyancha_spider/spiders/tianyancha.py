@@ -13,9 +13,14 @@ class TianyanchaSpider(scrapy.Spider):
     allowed_domains = ["tianyancha.com"]
     base_url = 'http://www.tianyancha.com/search?key=%s'
 
+    SHARE_HOLDER = 'share_holder'
+    PATENT_CONTENT = 'patent_content'
+    LAWSUIT_CONTENT = 'lawsuit_content'
+
     def __init__(self, name=None, **kwargs):
         super().__init__(name, **kwargs)
-        self.start_urls = self.init_urls()
+
+        self.start_urls = self._init_urls()
         self.item_cache = {}
 
     def start_requests(self):
@@ -37,10 +42,10 @@ class TianyanchaSpider(scrapy.Spider):
         if link.startswith('http://www.tianyancha.com/company'):
             company_code = extract_company_code(link)
             response.meta.update({'code': company_code})
-            yield Request('http://www.tianyancha.com/stock/equityChange.json?'
-                          'graphId=%s&ps=1000&pn=1' % company_code,
+            yield Request('http://www.tianyancha.com/stock/shareholder.json?'
+                          'graphId=%s&type=1' % company_code,
                           dont_filter=True, meta=response.meta,
-                          callback=self.equity_change)
+                          callback=self.share_holder)
             yield Request('http://www.tianyancha.com/expanse/patent.json?'
                           'id=%s&ps=1000&pn=1' % company_code,
                           dont_filter=True, meta=response.meta,
@@ -50,26 +55,28 @@ class TianyanchaSpider(scrapy.Spider):
                           dont_filter=True, meta=response.meta,
                           callback=self.lawsuit_content)
 
-    def equity_change(self, response):
-        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
-        equity_change = beautiful_soup.find('pre').text
-        equity_change = json.loads(equity_change)
-        response.meta.update({'equity_change': equity_change})
+    def share_holder(self, response):
+        response.meta.update({
+            self.SHARE_HOLDER: (self._extract_res_json(response))
+        })
         yield self._update_item_cache(response)
 
     def patent_content(self, response):
-        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
-        patent_content = beautiful_soup.find('pre').text
-        patent_content = json.loads(patent_content)
-        response.meta.update({'patent_content': patent_content})
+        response.meta.update({
+            self.PATENT_CONTENT: (self._extract_res_json(response))
+        })
         yield self._update_item_cache(response)
 
     def lawsuit_content(self, response):
-        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
-        lawsuit_content = beautiful_soup.find('pre').text
-        lawsuit_content = json.loads(lawsuit_content)
-        response.meta.update({'lawsuit_content': lawsuit_content})
+        response.meta.update({
+            self.LAWSUIT_CONTENT: (self._extract_res_json(response))
+        })
         yield self._update_item_cache(response)
+
+    def _extract_res_json(self, response):
+        beautiful_soup = BeautifulSoup(response.body, 'html.parser')
+        pre_text = beautiful_soup.find('pre').text
+        return json.loads(pre_text)
 
     def _update_item_cache(self, response):
         item = TianyanchaSpiderItem(response.meta)
@@ -81,10 +88,12 @@ class TianyanchaSpider(scrapy.Spider):
                 self.item_cache[key] = item
         cached_item = self.item_cache[key]
         if all(k in cached_item for k in (
-                'equity_change', 'patent_content', 'lawsuit_content')):
+                self.SHARE_HOLDER,
+                self.PATENT_CONTENT,
+                self.LAWSUIT_CONTENT)):
             return cached_item
 
-    def init_urls(self):
+    def _init_urls(self):
         try:
             with open('names.txt', encoding='utf8') as f:
                 lines = f.readlines()
