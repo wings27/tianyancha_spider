@@ -72,14 +72,12 @@ class TianyanchaSpider(scrapy.Spider):
             if response.url.startswith('http://www.tianyancha.com/stock/equityChange.json'):
                 equity_change = beautiful_soup.find('pre').text
                 equity_change = json.loads(equity_change)
-                yield TianyanchaSpiderItem(code=response.meta['code'],
-                                           equity_change=equity_change)
+                response.meta.update({'equity_change': equity_change})
             if response.url.startswith('http://www.tianyancha.com/expanse/patent.json'):
                 patent_content = beautiful_soup.find('pre').text
                 patent_content = json.loads(patent_content)
-                yield TianyanchaSpiderItem(code=response.meta['code'],
-                                           patent_content=patent_content)
-            print(response.body)
+                response.meta.update({'patent_content': patent_content})
+            yield TianyanchaSpiderItem(response.meta)
 
     # 股本变化情况  http://www.tianyancha.com/stock/equityChange.json?graphId=640320&ps=1000&pn=1
     # 法律诉讼  http://www.tianyancha.com/v2/getlawsuit/NAME.json?page=1&ps=1000
@@ -89,6 +87,7 @@ class TianyanchaSpider(scrapy.Spider):
         try:
             with open('names.txt', encoding='utf8') as f:
                 lines = f.readlines()
-                return ((name.strip(), self.base_url % name.strip()) for name in lines)
+                return ((name.strip(), self.base_url % name.strip())
+                        for name in lines if name.strip())
         except FileNotFoundError:
             pass
